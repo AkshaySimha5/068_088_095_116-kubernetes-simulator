@@ -1,13 +1,15 @@
 from typing import Optional
 from ..models.node import Node
 from ..models.pod import Pod
+import uuid
 
 class PodScheduler:
     def __init__(self, node_manager):
         self.node_manager = node_manager
         self.pods = {}
         
-    def schedule_pod(self, pod_id: str, cpu_required: int) -> Optional[Node]:
+    def schedule_pod(self, cpu_required: int) -> Optional[Node]:
+        pod_id = str(uuid.uuid4())
         # First-fit algorithm
         for node in self.node_manager.get_all_nodes():
             if node.status == "healthy" and node.available_cpu >= cpu_required:
@@ -22,11 +24,3 @@ class PodScheduler:
         
     def get_all_pods(self) -> list:
         return list(self.pods.values())
-        
-    def reschedule_pods_from_failed_node(self, failed_node_id: str):
-        failed_node = self.node_manager.get_node(failed_node_id)
-        if not failed_node:
-            return
-            
-        for pod in failed_node.pods:
-            self.schedule_pod(pod.pod_id, pod.cpu_required)

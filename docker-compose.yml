@@ -9,8 +9,6 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=development
-    networks:
-      - cluster-net
 
   node1:
     build:
@@ -18,26 +16,14 @@ services:
       dockerfile: dockerfiles/node.Dockerfile
     environment:
       - NODE_ID=node1
-      - API_SERVER_URL=http://api-server:5000
       - CPU_CORES=4
     depends_on:
       - api-server
-    networks:
-      - cluster-net
 
   node2:
     build:
       context: .
       dockerfile: dockerfiles/node.Dockerfile
-    environment:
-      - NODE_ID=node2
-      - API_SERVER_URL=http://api-server:5000
-      - CPU_CORES=2
+    command: ["python", "node.py", "--node-id", "node2", "--api-server", "http://api-server:5000", "--cpu-cores", "2"]
     depends_on:
       - api-server
-    networks:
-      - cluster-net
-
-networks:
-  cluster-net:
-    driver: bridge
