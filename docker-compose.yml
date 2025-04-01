@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  api-server:
+    build:
+      context: .
+      dockerfile: dockerfiles/api.Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+    networks:
+      - cluster-net
+
+  node1:
+    build:
+      context: .
+      dockerfile: dockerfiles/node.Dockerfile
+    environment:
+      - NODE_ID=node1
+      - API_SERVER_URL=http://api-server:5000
+      - CPU_CORES=4
+    depends_on:
+      - api-server
+    networks:
+      - cluster-net
+
+  node2:
+    build:
+      context: .
+      dockerfile: dockerfiles/node.Dockerfile
+    environment:
+      - NODE_ID=node2
+      - API_SERVER_URL=http://api-server:5000
+      - CPU_CORES=2
+    depends_on:
+      - api-server
+    networks:
+      - cluster-net
+
+networks:
+  cluster-net:
+    driver: bridge
