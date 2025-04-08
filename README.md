@@ -18,4 +18,10 @@ A lightweight simulation-based distributed system that mimics core Kubernetes cl
 - Fault Tolerance and Pod Rescheduling
 - CLI Interface for Cluster Management
 
-## Project Structure
+## Commands
+- python -m api_server.app
+- python node_simulator/node.py --api-server http://localhost:5000 --cpu-cores 2
+- docker build -f dockerfiles/node.Dockerfile -t node-sim .
+- docker run --rm -e NODE_ID={ID} -e CPU_CORES={VAL} node-sim
+
+  
