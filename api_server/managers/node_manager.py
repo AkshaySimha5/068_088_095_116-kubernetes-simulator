@@ -8,7 +8,10 @@ class NodeManager:
         self.last_heartbeat: Dict[str, float] = {}
 
     def add_node(self, node_id: str, cpu_cores: int) -> Node:
-        """Add node with either custom or generated ID"""
+        """
+        Add a new node to the cluster.
+        Raises ValueError if node_id already exists.
+        """
         if node_id in self.nodes:
             raise ValueError(f"Node ID {node_id} already exists")
         node = Node(node_id, cpu_cores)
@@ -16,13 +19,39 @@ class NodeManager:
         self.last_heartbeat[node_id] = time.time()
         return node
 
+    def get_node(self, node_id: str) -> Node:
+        """
+        Retrieve a single node by its ID.
+        Returns None if not found.
+        """
+        return self.nodes.get(node_id)
+
+    def get_all_nodes(self):
+        """
+        Return a list of all node objects.
+        """
+        return list(self.nodes.values())
+
     def prune_inactive_nodes(self, timeout_sec=30):
-        """Remove nodes that haven't sent heartbeats"""
+        """
+        Mark nodes as unhealthy if they haven't sent a heartbeat within the timeout.
+        """
         current_time = time.time()
-        inactive_nodes = [
-            node_id for node_id, last_time in self.last_heartbeat.items()
-            if current_time - last_time > timeout_sec
-        ]
-        for node_id in inactive_nodes:
-            del self.nodes[node_id]
-            del self.last_heartbeat[node_id]
+        for node_id, last_time in self.last_heartbeat.items():
+            node = self.nodes[node_id]
+            if current_time - last_time > timeout_sec:
+                node.status = "unhealthy"
+            else:
+                node.status = "healthy"
+
+    def update_heartbeat(self, node_id: str, available_cpu: int) -> bool:
+        """
+        Update the heartbeat and available CPU for the given node.
+        Returns False if node is not found.
+        """
+        if node_id not in self.nodes:
+            return False
+        self.last_heartbeat[node_id] = time.time()
+        self.nodes[node_id].available_cpu = available_cpu
+        self.nodes[node_id].status = "healthy"
+        return True

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cluster Dashboard</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+    h1 { color: #333; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+    th { background: #333; color: white; }
+    .healthy { color: green; }
+    .unhealthy { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Cluster Node Dashboard</h1>
+  <table id="nodeTable">
+    <thead>
+      <tr>
+        <th>Node ID</th>
+        <th>CPU Cores</th>
+        <th>Available CPU</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Filled dynamically -->
+    </tbody>
+  </table>
+
+  <script>
+    async function loadNodes() {
+      const response = await fetch("http://localhost:5000/nodes");
+      const nodes = await response.json();
+
+      const tbody = document.querySelector("#nodeTable tbody");
+      tbody.innerHTML = ""; // clear previous rows
+
+      nodes.forEach(node => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${node.node_id}</td>
+          <td>${node.cpu_cores}</td>
+          <td>${node.available_cpu}</td>
+          <td class="${node.status}">${node.status}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    setInterval(loadNodes, 5000); // refresh every 5s
+    loadNodes();
+  </script>
+</body>
+</html>

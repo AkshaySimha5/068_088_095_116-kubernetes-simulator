@@ -4,10 +4,11 @@ from ..managers.node_manager import NodeManager
 class HealthResource(Resource):
     def __init__(self, node_manager: NodeManager):
         self.node_manager = node_manager
-        
+
     def get(self):
+        self.node_manager.prune_inactive_nodes()
         healthy_nodes = [
-            node for node in self.node_manager.get_all_nodes() 
+            node for node in self.node_manager.get_all_nodes()
             if node.status == "healthy"
         ]
         return {
