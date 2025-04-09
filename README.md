@@ -75,6 +75,13 @@ A lightweight simulation-based distributed system that mimics core Kubernetes cl
 # Stop Running Node Containers
   docker stop node-1 node-2 node-3
 
+# Week 3
+
+# Same as week 2 but with the following tweaks
+- Stop only one node e.g. node 2
+- Wait for the status to go from healthy to unhealthy
+- Pod rescheduling will happen only if there is extra cpu in any other node.
+
 
 
 

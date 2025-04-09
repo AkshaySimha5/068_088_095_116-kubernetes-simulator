@@ -10,7 +10,7 @@ app = Flask(__name__, template_folder='templates')
 api = Api(app)
 
 # -------------------------
-# Node Manager (Week 2)
+# Node Manager
 # -------------------------
 class NodeManager:
     def __init__(self):
@@ -32,20 +32,55 @@ class NodeManager:
     def get_all_nodes(self):
         return self.nodes
 
+    def delete_node(self, node_id):
+        if node_id in self.nodes:
+            del self.nodes[node_id]
+            return True
+        return False
+
     def prune_inactive_nodes(self):
         current_time = time.time()
         for node_id, node in list(self.nodes.items()):
             if current_time - node['last_heartbeat'] > self.heartbeat_timeout:
-                node['status'] = 'unhealthy'
+                if node['status'] == 'healthy':
+                    node['status'] = 'unhealthy'
+                    self._reschedule_pods(node_id)
+
+    def _reschedule_pods(self, failed_node_id):
+        failed_node = self.nodes.get(failed_node_id)
+        if not failed_node:
+            return
+
+        pods_to_reschedule = failed_node['pods']
+        failed_node['pods'] = []
+
+        scheduler = PodScheduler(self)
+        for pod in pods_to_reschedule:
+            new_node_id = scheduler.schedule_pod(pod['cpu_required'])
+            if new_node_id:
+                self.nodes[new_node_id]['available_cpu'] -= pod['cpu_required']
+                self.add_pod_to_node(new_node_id, pod)
+                print(f"Rescheduled {pod['id']} from {failed_node_id} to {new_node_id}")
+            else:
+                print(f"Failed to reschedule pod {pod['id']} from {failed_node_id}")
 
     def add_pod_to_node(self, node_id, pod):
         if node_id in self.nodes:
             self.nodes[node_id]['pods'].append(pod)
 
+    def remove_pod(self, pod_id):
+        for node_id, node in self.nodes.items():
+            for pod in node['pods']:
+                if pod['id'] == pod_id:
+                    node['pods'].remove(pod)
+                    node['available_cpu'] += pod['cpu_required']
+                    return True
+        return False
+
 node_manager = NodeManager()
 
 # -------------------------
-# Pod Scheduler (Week 2)
+# Pod Scheduler
 # -------------------------
 class PodScheduler:
     def __init__(self, node_manager):
@@ -83,7 +118,7 @@ api.add_resource(
 )
 
 # -------------------------
-# Pod Scheduling Endpoint (Week 2)
+# Pod Scheduling Endpoint
 # -------------------------
 @app.route('/api/pods', methods=['POST'])
 def launch_pod():
@@ -115,18 +150,48 @@ def launch_pod():
     }), 201
 
 # -------------------------
+# Pod Removal Endpoint (New)
+# -------------------------
+@app.route('/api/pods/remove', methods=['POST'])
+def remove_pod():
+    data = request.get_json()
+    if not data or 'pod_id' not in data:
+        return jsonify({"error": "Missing pod ID"}), 400
+
+    pod_id = data['pod_id']
+    success = node_manager.remove_pod(pod_id)
+    if success:
+        return jsonify({"message": f"Pod {pod_id} unscheduled successfully"}), 200
+    else:
+        return jsonify({"error": "Pod not found"}), 404
+
+# -------------------------
+# Delete Node Endpoint (New)
+# -------------------------
+@app.route('/api/nodes/<node_id>', methods=['DELETE'])
+def delete_node(node_id):
+    success = node_manager.delete_node(node_id)
+    if success:
+        return jsonify({"message": f"Node {node_id} deleted successfully"}), 200
+    else:
+        return jsonify({"error": "Node not found"}), 404
+
+# -------------------------
 # HTML Dashboard
 # -------------------------
 @app.route('/')
 def dashboard():
     node_manager.prune_inactive_nodes()
+    nodes = node_manager.get_all_nodes()
     return render_template(
         'index.html',
-        nodes=node_manager.nodes,
+        nodes=nodes,
         stats={
-            'total_nodes': len(node_manager.nodes),
-            'healthy_nodes': sum(1 for n in node_manager.nodes.values() if n['status'] == 'healthy'),
-            'total_pods': sum(len(n['pods']) for n in node_manager.nodes.values())
+            'total_nodes': len(nodes),
+            'healthy_nodes': sum(1 for n in nodes.values() if n['status'] == 'healthy'),
+            'unhealthy_nodes': sum(1 for n in nodes.values() if n['status'] == 'unhealthy'),
+            'idle_nodes': sum(1 for n in nodes.values() if n['available_cpu'] == n['cpu_cores']),
+            'total_pods': sum(len(n['pods']) for n in nodes.values())
         }
     )
 

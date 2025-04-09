@@ -5,52 +5,62 @@
   <title>Cluster Dashboard</title>
   <style>
     body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
-    h1 { color: #333; }
-    table { width: 100%; border-collapse: collapse; background: white; }
+    h1, h2 { color: #333; }
+    table { width: 100%; border-collapse: collapse; background: white; margin-bottom: 20px; }
     th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
     th { background: #333; color: white; }
-    .healthy { color: green; }
-    .unhealthy { color: red; }
+    .healthy { color: green; font-weight: bold; }
+    .unhealthy { color: red; font-weight: bold; }
+    ul { margin: 0; padding-left: 1.2em; }
+    .stats-box {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-left: 5px solid #007BFF;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
   <h1>Cluster Node Dashboard</h1>
-  <table id="nodeTable">
+
+  <div class="stats-box">
+    <p><strong>Total Nodes:</strong> {{ stats.total_nodes }}</p>
+    <p><strong>Healthy Nodes:</strong> {{ stats.healthy_nodes }}</p>
+    <p><strong>Total Pods:</strong> {{ stats.total_pods }}</p>
+  </div>
+
+  <table>
     <thead>
       <tr>
         <th>Node ID</th>
         <th>CPU Cores</th>
         <th>Available CPU</th>
         <th>Status</th>
+        <th>Pods</th>
       </tr>
     </thead>
     <tbody>
-      <!-- Filled dynamically -->
+      {% for node_id, node in nodes.items() %}
+      <tr>
+        <td>{{ node_id }}</td>
+        <td>{{ node.cpu_cores }}</td>
+        <td>{{ node.available_cpu }}</td>
+        <td class="{{ node.status }}">{{ node.status | capitalize }}</td>
+        <td>
+          {% if node.pods %}
+            <ul>
+              {% for pod in node.pods %}
+                <li>{{ pod.id }} ({{ pod.cpu_required }} CPU)</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            No pods
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
     </tbody>
   </table>
-
-  <script>
-    async function loadNodes() {
-      const response = await fetch("http://localhost:5000/nodes");
-      const nodes = await response.json();
-
-      const tbody = document.querySelector("#nodeTable tbody");
-      tbody.innerHTML = ""; // clear previous rows
-
-      nodes.forEach(node => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${node.node_id}</td>
-          <td>${node.cpu_cores}</td>
-          <td>${node.available_cpu}</td>
-          <td class="${node.status}">${node.status}</td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
-
-    setInterval(loadNodes, 5000); // refresh every 5s
-    loadNodes();
-  </script>
 </body>
 </html>
