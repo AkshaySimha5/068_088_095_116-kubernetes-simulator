@@ -7,7 +7,7 @@ A lightweight simulation-based distributed system that mimics core Kubernetes cl
 
 ## Team Members
 - PES1UG22CS068 - Akshay Simha L N
-- PES1UG22CS088 - Anikait Nanjundappa 
+- PES1UG22CS088 - Anikait Nanjundappa .
 - PES1UG22CS095 - Anish D B
 - PES1UG22CS116 - Ashish Chandra K
 
